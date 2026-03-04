@@ -1,20 +1,46 @@
-📝 Статус проекта: BatteryTracker (v1.0)
-1. Архитектура (Core Library — .NET Standard 2.1 / .NET 10):
-Pattern: Dependency Injection (DI) через интерфейсы.
-Hardware Layer: Интерфейс IBatteryMonitor (события RawLineReceived, ErrorOccurred).
-BatterySerialMonitor: Реальный COM-порт с SerialSettings.
-VirtualBatteryMonitor: Эмулятор, генерирует случайные данные $V,I,T раз в секунду.
-Service Layer: BatteryParser (статический, поддержка 3 и 4 параметров, перегрузка с DateTime). SystemController — дирижер, связывает монитор и репозиторий.
-Data Layer: FileRepository — построчная запись сырых данных с добавлением даты после $.
-2. Интерфейс (WPF App — .NET 10):
-Pattern: MVVM.
-Base: ViewModelBase с реализацией INotifyPropertyChanged.
+🔋 BatteryTracker (v1.0)
+BatteryTracker — это модульное .NET приложение для мониторинга параметров аккумуляторных батарей (напряжение, ток, температура) в реальном времени через последовательный порт (COM/UART).
+Проект построен на современной базе .NET 10 с четким разделением логики (Core Library) и интерфейса (WPF MVVM).
+🚀 Основные возможности
+Real-time Мониторинг: Визуализация данных (V, I, T) на динамических графиках ("осциллограф" с окном в 30 сек).
+Двойной режим Hardware Layer:
+BatterySerialMonitor: Работа с реальными COM-портами.
+VirtualBatteryMonitor: Эмулятор для тестирования без оборудования.
+Логирование: Автоматическая запись данных в .csv файлы с разделением по датам (Log_yyyy-MM-dd.csv).
+Анализ логов: Загрузка исторических данных из CSV-файлов с автоматическим масштабированием графиков.
+Архитектура DI: Использование интерфейсов (IBatteryMonitor) для легкой замены источников данных.
+🏗 Архитектура проекта
+Проект разделен на два основных блока:
+1. BatteryTracker.Core (.NET Standard 2.1 / .NET 10)
+Models: Сущности BatteryData и SerialSettings.
+Services:
+BatteryParser: Интеллектуальный парсинг строк (поддержка префикса $, форматов с датой и без).
+SystemController: "Дирижер" системы, связывающий железо, логику и репозиторий.
+DataRepositories: FileRepository для потоковой записи и чтения логов.
+2. BatteryTracker.App (WPF / .NET 10)
+Pattern: MVVM (ViewModel-First).
+UI: Современные графики на базе LiveChartsCore.
 ViewModels:
-MainViewModel: Подписан на NewDataReady, обновляет CurrentBatteryData.
-ConnectionViewModel: Управляет списком портов (включая "VIRTUAL") и SerialSettings.
-Views: MainWindow.xaml (разметка на Grid), ConnectionWindow.xaml.
-3. Текущая задача:
-Завершена настройка связки Hardware -> Controller -> ViewModel.
-Проект переименован в BatteryTracker.App (WPF) и BatteryTracker.Core (Library), чтобы избежать конфликта имен с классом монитора.
-Следующий шаг: Реализация расчета емкости (Ah) и статистики в контроллере.
-4. Ссылка на репозиторий: https://github.com (ветка CsCppKotlin).
+MainViewModel: Управление потоком данных и графиками.
+ConnectionViewModel: Настройка портов и параметров связи.
+📋 Формат данных (CSV)
+Приложение использует стандартизированный формат логов с поддержкой InvariantCulture (точка как разделитель):
+csv
+$DateTime,Voltage,Current,Temperature
+$2026-03-04 07:54:44,12.41,2.43,27.4
+Используйте код с осторожностью.
+
+🛠 Технологический стек
+Language: C# 13
+Platform: .NET 10
+UI Framework: WPF
+Graphics: LiveChartsCore (SkiaSharp)
+IO: System.IO.Ports
+📈 План развития (Roadmap)
+Базовая архитектура и DI.
+Виртуальный эмулятор данных.
+Исправление системы импорта/экспорта CSV.
+Next Step: Реализация расчета накопленной емкости (Ah/Wh).
+Добавление статистики сессии (Min/Max/Avg).
+Экспорт отчетов в PDF.
+Разработано в рамках практики проектирования систем мониторинга на C#.
