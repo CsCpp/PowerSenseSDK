@@ -12,6 +12,7 @@ using System.Windows;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Linq;
 
 namespace BatteryTracker.App.ViewModels
 {
@@ -25,23 +26,26 @@ namespace BatteryTracker.App.ViewModels
         public ObservableCollection<ObservablePoint> VoltageValues { get; } = new();
         public ObservableCollection<ObservablePoint> CurrentValues { get; } = new();
 
-        // 2. Серии и Оси (обязательно свойства для корректного Binding в XAML)
+        // 2. Серии и Оси
         public ISeries[] CombinedSeries { get; set; }
         public Axis[] XAxes { get; set; }
         public Axis[] YAxes { get; set; }
 
-        // 3. Форматтер для оси X (вынесен в свойство)
+        // Краска для текста и сетки (Dark Theme)
+        private static readonly SolidColorPaint WhitePaint = new(SKColors.WhiteSmoke);
+        private static readonly SolidColorPaint GridPaint = new(SKColors.Gray.WithAlpha(40));
+
+        // 3. Форматтер для оси X
         public Func<double, string> XFormatter { get; } = v =>
             v > 0 ? DateTime.FromOADate(v).ToString("HH:mm:ss") : "";
 
         /// <summary>
-        /// Конструктор для работы (DI)
+        /// Конструктор для DI
         /// </summary>
         public MainViewModel(SystemController controller) : this()
         {
             _controller = controller ?? throw new ArgumentNullException(nameof(controller));
 
-            // Подписка на данные от контроллера
             _controller.NewDataReady += (data) =>
             {
                 Application.Current.Dispatcher.Invoke(() => UpdateChartPoints(data));
@@ -51,15 +55,18 @@ namespace BatteryTracker.App.ViewModels
         }
 
         /// <summary>
-        /// Пустой конструктор для Дизайнера WPF (убирает ошибку "MainViewModel не существует")
+        /// Основной конструктор (Настройка стилей Темной Темы)
         /// </summary>
         public MainViewModel()
         {
-            // Настройка осей (теперь XAML не будет ругаться на типы)
+            // Настройка осей под темный фон
             XAxes = new Axis[] {
                 new Axis {
                     Labeler = XFormatter,
                     Name = "Время",
+                    NamePaint = WhitePaint,
+                    LabelsPaint = WhitePaint,
+                    SeparatorsPaint = GridPaint,
                     NameTextSize = 12
                 }
             };
@@ -68,13 +75,16 @@ namespace BatteryTracker.App.ViewModels
                 new Axis {
                     Name = "Вольты (V)",
                     Position = LiveChartsCore.Measure.AxisPosition.Start,
-                    NamePaint = new SolidColorPaint(SKColors.DarkGreen)
+                    NamePaint = new SolidColorPaint(SKColors.Cyan), // Контрастный циан
+                    LabelsPaint = WhitePaint,
+                    SeparatorsPaint = GridPaint
                 },
                 new Axis {
                     Name = "Амперы (A)",
                     Position = LiveChartsCore.Measure.AxisPosition.End,
                     ShowSeparatorLines = false,
-                    NamePaint = new SolidColorPaint(SKColors.DarkRed)
+                    NamePaint = new SolidColorPaint(SKColors.Gold), // Контрастный золотой
+                    LabelsPaint = WhitePaint
                 }
             };
 
@@ -83,18 +93,18 @@ namespace BatteryTracker.App.ViewModels
                 new LineSeries<ObservablePoint> {
                     Values = VoltageValues,
                     Name = "Напряжение (V)",
-                    Stroke = new SolidColorPaint(SKColors.DodgerBlue, 2),
+                    Stroke = new SolidColorPaint(SKColors.Cyan, 2),
                     GeometrySize = 0,
                     Fill = null,
-                    ScalesYAt = 0 // Привязка к первой оси Y
+                    ScalesYAt = 0
                 },
                 new LineSeries<ObservablePoint> {
                     Values = CurrentValues,
                     Name = "Ток (A)",
-                    Stroke = new SolidColorPaint(SKColors.OrangeRed, 2),
+                    Stroke = new SolidColorPaint(SKColors.Gold, 2),
                     GeometrySize = 0,
                     Fill = null,
-                    ScalesYAt = 1 // Привязка ко второй оси Y
+                    ScalesYAt = 1
                 }
             };
         }
@@ -108,20 +118,12 @@ namespace BatteryTracker.App.ViewModels
             VoltageValues.Add(new ObservablePoint(x, data.Voltage));
             CurrentValues.Add(new ObservablePoint(x, data.Current));
 
-            // --- ЛОГИКА ОСЦИЛЛОГРАФА ---
-
-            // Определяем ширину окна (например, последние 30 секунд)
-            // 30 секунд в формате OADate (дни) = 30 / (24 * 3600)
+            // Логика осциллографа (30 сек)
             double windowWidth = 30.0 / (24 * 3600);
-
-            // Берем текущую ось X (она у нас в массиве XAxes)
             var xAxis = XAxes[0];
-
-            // Устанавливаем границы: Максимум — это текущая точка, Минимум — текущая минус окно
             xAxis.MaxLimit = x;
             xAxis.MinLimit = x - windowWidth;
 
-            // Ограничиваем количество точек в памяти (например, до 500), чтобы не тормозило
             if (VoltageValues.Count > 500)
             {
                 VoltageValues.RemoveAt(0);
@@ -133,10 +135,8 @@ namespace BatteryTracker.App.ViewModels
         {
             var dialog = new OpenFileDialog
             {
-                // Устанавливаем папку запуска по умолчанию
                 InitialDirectory = AppDomain.CurrentDomain.BaseDirectory,
-                // Ставим CSV на первое место, чтобы не просил .txt
-                Filter = "CSV Data Files (*.csv)|*.csv|Log Files (*.txt)|*.txt|All Files (*.*)|*.*",
+                Filter = "CSV Data Files (*.csv)|*.csv|All Files (*.*)|*.*",
                 DefaultExt = ".csv",
                 Title = "Открыть данные BatteryTracker"
             };
@@ -146,17 +146,12 @@ namespace BatteryTracker.App.ViewModels
                 try
                 {
                     var lines = File.ReadAllLines(dialog.FileName);
-
-                    // Очищаем старые точки перед загрузкой новых
                     VoltageValues.Clear();
                     CurrentValues.Clear();
 
                     foreach (var line in lines)
                     {
-                        var cleanLine = line.Trim();
-                        if (string.IsNullOrWhiteSpace(cleanLine)) continue;
-
-                        var data = BatteryParser.Parse(cleanLine);
+                        var data = BatteryParser.Parse(line);
                         if (data != null)
                         {
                             var x = data.Timestamp.ToOADate();
@@ -165,33 +160,26 @@ namespace BatteryTracker.App.ViewModels
                         }
                     }
 
-                    // ВАЖНО: Сбрасываем лимиты осей (MinLimit/MaxLimit), 
-                    // чтобы график автоматически масштабировался под загруженный файл,
-                    // иначе логика "осциллографа" покажет пустоту.
-                    if (XAxes != null && XAxes.Length > 0)
+                    // Сброс лимитов для отображения всего файла
+                    if (XAxes.Length > 0)
                     {
                         XAxes[0].MinLimit = null;
                         XAxes[0].MaxLimit = null;
                     }
 
-                    StatusMessage = $"Файл загружен: {Path.GetFileName(dialog.FileName)} ({VoltageValues.Count} точек)";
-
-                    // Принудительно уведомляем UI об обновлении серий
+                    StatusMessage = $"Загружено: {VoltageValues.Count} точек ({Path.GetFileName(dialog.FileName)})";
                     OnPropertyChanged(nameof(CombinedSeries));
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка парсинга файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                    StatusMessage = "Ошибка при загрузке файла";
+                    MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
 
-        // --- Свойства с уведомлением об изменении ---
-
         public BatteryData CurrentData
         {
-            get => _currentData ?? new BatteryData(0, 0, 0, DateTime.Now); // Защита от null
+            get => _currentData;
             set { _currentData = value; OnPropertyChanged(); }
         }
 

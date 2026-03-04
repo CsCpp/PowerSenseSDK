@@ -5,21 +5,40 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BatteryTracker.App.Views"
         mc:Ignorable="d"
-          Title="Настройка подключения" Height="250" Width="300"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+          Title="Настройка подключения" Height="280" Width="320"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#1E1E1E" Foreground="#E0E0E0">
+    <!-- Темная тема -->
+
     <Grid Margin="20">
         <StackPanel>
-            <TextBlock Text="Выберите порт:"/>
+            <TextBlock Text="ВЫБЕРИТЕ ПОРТ:" 
+                       FontSize="11" FontWeight="SemiBold" Foreground="#858585" Margin="0,0,0,5"/>
             <ComboBox ItemsSource="{Binding AvailablePorts}" 
-                      SelectedItem="{Binding SelectedPort}" Margin="0,5,0,15"/>
+                      SelectedItem="{Binding SelectedPort}" 
+                      Height="30" Margin="0,0,0,15" VerticalContentAlignment="Center"/>
 
-            <TextBlock Text="Скорость (Baud):"/>
+            <TextBlock Text="СКОРОСТЬ (BAUD):" 
+                       FontSize="11" FontWeight="SemiBold" Foreground="#858585" Margin="0,0,0,5"/>
             <ComboBox ItemsSource="{Binding BaudRates}" 
-                      SelectedItem="{Binding SelectedBaudRate}" Margin="0,5,0,20"/>
+                      SelectedItem="{Binding SelectedBaudRate}" 
+                      Height="30" Margin="0,0,0,25" VerticalContentAlignment="Center"/>
 
-            <Button Content="ПОДКЛЮЧИТЬСЯ" Height="35" 
+            <!-- Кнопка с акцентным цветом вместо LightBlue -->
+            <Button Content="ПОДКЛЮЧИТЬСЯ" 
+                    Height="40" 
                     Click="Connect_Click"
-                    Background="LightBlue" FontWeight="Bold"/>
+                    Background="#007ACC" 
+                    Foreground="White" 
+                    FontWeight="Bold" 
+                    BorderThickness="0"
+                    Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="4"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
         </StackPanel>
     </Grid>
 </Window>
