@@ -1,0 +1,9 @@
+﻿<Application x:Class="BatteryTracker.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:BatteryTracker.App"
+             StartupUri="Views/MainWindow.xaml">
+    <Application.Resources>
+         <!-- Ваши ресурсы -->
+    </Application.Resources>
+</Application> 
